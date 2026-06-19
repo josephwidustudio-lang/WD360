@@ -1,121 +1,126 @@
-import { createClient } from '@supabase/supabase-js';
+// Frontend API Client Bridge - Connects to PHP + MySQL Backend
+// Replaces Supabase Client
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+// Dynamically compute the API base path
+// - In production: Uses relative path '/api'
+// - In development: Uses VITE_API_URL environment variable if set, otherwise falls back to local Mock Mode
+const API_BASE = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '/api' : '');
 
-// Detect if Supabase is fully configured
-export const isSupabaseConfigured = supabaseUrl !== '' && supabaseKey !== '';
+export const isSupabaseConfigured = API_BASE !== '';
 
-export const supabase = isSupabaseConfigured ? createClient(supabaseUrl, supabaseKey) : null;
+// Helper to make API requests with credentials (cookies)
+async function apiRequest(endpoint, options = {}) {
+  const url = `${API_BASE}/${endpoint}`;
+  
+  // Set credentials for session cookie support
+  options.credentials = 'include';
+  
+  // Set default headers if sending JSON
+  if (options.body && !(options.body instanceof FormData)) {
+    options.headers = {
+      'Content-Type': 'application/json',
+      ...(options.headers || {})
+    };
+  }
 
-// Database helper functions (Only active when Supabase is configured)
+  const response = await fetch(url, options);
+  
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || `HTTP error! Status: ${response.status}`);
+  }
+  
+  return response.json();
+}
+
 export const db = {
   // Authentication
   async signIn(email, password) {
     if (!isSupabaseConfigured) return null;
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) throw error;
-    
-    // Fetch user profile plan metadata
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('plan')
-      .eq('id', data.user.id)
-      .single();
-
-    return {
-      id: data.user.id,
-      email: data.user.email,
-      plan: profile?.plan || 'starter'
-    };
+    const res = await apiRequest('auth.php?action=signin', {
+      method: 'POST',
+      body: JSON.stringify({ email, password })
+    });
+    return res.user;
   },
 
   async signUp(email, password, plan) {
     if (!isSupabaseConfigured) return null;
-    const { data, error } = await supabase.auth.signUp({ email, password });
-    if (error) throw error;
-
-    // Create profile metadata record inside Postgres
-    if (data.user) {
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert({ id: data.user.id, email, plan });
-      if (profileError) console.error("Error creating user profile record:", profileError);
-    }
-
-    return {
-      id: data.user.id,
-      email: data.user.email,
-      plan: plan
-    };
+    const res = await apiRequest('auth.php?action=signup', {
+      method: 'POST',
+      body: JSON.stringify({ email, password, plan })
+    });
+    return res.user;
   },
 
   async logout() {
     if (!isSupabaseConfigured) return;
-    await supabase.auth.signOut();
+    await apiRequest('auth.php?action=logout', {
+      method: 'POST'
+    });
   },
 
+  async getSession() {
+    if (!isSupabaseConfigured) return null;
+    const res = await apiRequest('auth.php?action=session');
+    return res.user;
+  },
+
+  async updatePlan(newPlan) {
+    if (!isSupabaseConfigured) return;
+    const res = await apiRequest('auth.php?action=update_plan', {
+      method: 'POST',
+      body: JSON.stringify({ plan: newPlan })
+    });
+    return res.success;
+  },
+
+  // Tours
   async getTours() {
     if (!isSupabaseConfigured) return [];
-    const { data, error } = await supabase
-      .from('tours')
-      .select('*')
-      .order('created_at', { ascending: false });
-    
-    if (error) throw error;
-    return data;
+    return apiRequest('tours.php');
+  },
+
+  async getTourById(tourId) {
+    if (!isSupabaseConfigured) return null;
+    return apiRequest(`tours.php?id=${tourId}`);
   },
 
   async saveTour(tour) {
     if (!isSupabaseConfigured) return;
-    
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error("No authenticated user session.");
-
-    const tourPayload = {
-      id: tour.id,
-      user_id: user.id,
-      title: tour.title,
-      description: tour.description,
-      scenes: tour.scenes
-    };
-
-    const { error } = await supabase
-      .from('tours')
-      .upsert(tourPayload);
-
-    if (error) throw error;
+    await apiRequest('tours.php', {
+      method: 'POST',
+      body: JSON.stringify({
+        id: tour.id,
+        title: tour.title,
+        description: tour.description,
+        scenes: tour.scenes
+      })
+    });
   },
 
   async deleteTour(tourId) {
     if (!isSupabaseConfigured) return;
-    const { error } = await supabase
-      .from('tours')
-      .delete()
-      .eq('id', tourId);
-
-    if (error) throw error;
+    await apiRequest(`tours.php?id=${tourId}`, {
+      method: 'DELETE'
+    });
   },
 
-  // Upload image to Supabase Storage bucket ('renders360')
+  // Upload image to local php server uploads directory
   async uploadSceneImage(file) {
     if (!isSupabaseConfigured) return null;
     
-    const fileName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, '_')}`;
-    const { data, error } = await supabase.storage
-      .from('renders360')
-      .upload(fileName, file, {
-        cacheControl: '3600',
-        upsert: false
-      });
+    const formData = new FormData();
+    formData.append('file', file);
 
-    if (error) throw error;
+    const res = await apiRequest('upload.php', {
+      method: 'POST',
+      body: formData
+    });
 
-    // Get public URL
-    const { data: { publicUrl } } = supabase.storage
-      .from('renders360')
-      .getPublicUrl(fileName);
-
-    return publicUrl;
+    return res.url;
   }
 };
+
+// Export null supabase client placeholder for compatibility
+export const supabase = null;

@@ -5,7 +5,7 @@ import Editor from './components/Editor';
 import ThreeDViewer from './components/ThreeDViewer';
 import { generatePanorama } from './utils/proceduralAssets';
 import { Compass, Sparkles, LogOut, ArrowLeft, Layers, User, Play } from 'lucide-react';
-import { isSupabaseConfigured, db, supabase } from './utils/supabaseClient';
+import { isSupabaseConfigured, db } from './utils/supabaseClient';
 import './App.css';
 
 export default function App() {
@@ -50,13 +50,8 @@ export default function App() {
         try {
           // 1. Check if loading public preview directly (embed link)
           if (viewParam === 'preview' && tourIdParam) {
-            const { data: publicTour, error } = await supabase
-              .from('tours')
-              .select('*')
-              .eq('id', tourIdParam)
-              .single();
-            
-            if (publicTour && !error) {
+            const publicTour = await db.getTourById(tourIdParam);
+            if (publicTour) {
               setActiveTour(publicTour);
               setPreviewSceneId(publicTour.scenes[0]?.id || '');
               setScreen('preview');
@@ -64,19 +59,9 @@ export default function App() {
           }
 
           // 2. Check current session
-          const { data: { session } } = await supabase.auth.getSession();
-          if (session) {
-            const { data: profile } = await supabase
-              .from('profiles')
-              .select('plan')
-              .eq('id', session.user.id)
-              .single();
-
-            setUser({
-              id: session.user.id,
-              email: session.user.email,
-              plan: profile?.plan || 'starter'
-            });
+          const sessionUser = await db.getSession();
+          if (sessionUser) {
+            setUser(sessionUser);
             
             // Only switch to dashboard if we are not loading a shared embed link
             if (!(viewParam === 'preview' && tourIdParam)) {
@@ -87,7 +72,7 @@ export default function App() {
             setTours(toursList);
           }
         } catch (err) {
-          console.error("Error connecting to Supabase database:", err);
+          console.error("Error connecting to API backend:", err);
         }
       } else {
         // Fallback local storage
@@ -270,11 +255,7 @@ export default function App() {
     
     if (isSupabaseConfigured) {
       try {
-        const { error } = await supabase
-          .from('profiles')
-          .update({ plan: newPlan })
-          .eq('id', user.id);
-        if (error) throw error;
+        await db.updatePlan(newPlan);
         setUser(updated);
       } catch (err) {
         alert("Error al actualizar el plan en la base de datos.");
