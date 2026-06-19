@@ -104,7 +104,9 @@ export default function ThreeDViewer({
       renderer.dispose();
       geometry.dispose();
       material.dispose();
-      texture.dispose();
+      if (material.map) {
+        material.map.dispose();
+      }
     };
   }, []); // Only run once on mount
 
