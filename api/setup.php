@@ -41,6 +41,7 @@ try {
         `title` VARCHAR(255) NOT NULL,
         `description` TEXT,
         `scenes` LONGTEXT NOT NULL, -- JSON formatted scenes list
+        `views` INT DEFAULT 0,
         `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         PRIMARY KEY (`id`),
         FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE

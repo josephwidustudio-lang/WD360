@@ -22,6 +22,10 @@ switch ($method) {
         if (!empty($tourIdParam)) {
             // Retrieve single specific tour (Guest or Owner)
             try {
+                // Increment views count
+                $stmtUpdateViews = $pdo->prepare("UPDATE tours SET views = views + 1 WHERE id = ?");
+                $stmtUpdateViews->execute([$tourIdParam]);
+
                 $stmt = $pdo->prepare("SELECT * FROM tours WHERE id = ?");
                 $stmt->execute([$tourIdParam]);
                 $row = $stmt->fetch();
@@ -38,6 +42,7 @@ switch ($method) {
                     "title" => $row['title'],
                     "description" => $row['description'],
                     "scenes" => json_decode($row['scenes'], true),
+                    "views" => (int)$row['views'],
                     "created_at" => $row['created_at']
                 ]);
             } catch (Exception $e) {
@@ -60,8 +65,8 @@ switch ($method) {
                         "title" => $row['title'],
                         "description" => $row['description'],
                         "scenes" => json_decode($row['scenes'], true),
+                        "views" => (int)$row['views'],
                         "created_at" => $row['created_at']
-                    ];
                 }
                 echo json_encode($formattedTours);
             } catch (Exception $e) {

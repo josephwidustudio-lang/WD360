@@ -57,6 +57,15 @@ export default function Dashboard({
   const renderLimitPercentage = Math.min((totalRendersUsed / currentLimit.maxRenders) * 100, 100);
   const tourLimitPercentage = Math.min((totalToursUsed / currentLimit.maxTours) * 100, 100);
 
+  // Calculate dynamic stats
+  const totalViews = tours.reduce((acc, tour) => acc + (tour.views || 0), 0);
+  const totalHotspots = tours.reduce((acc, tour) => acc + (tour.scenes ? tour.scenes.reduce((hAcc, s) => hAcc + (s.hotspots ? s.hotspots.length : 0), 0) : 0), 0);
+
+  // Bandwidth limit calculation (Starter: 100MB, Pro: 10GB, Enterprise: 500GB)
+  const bandwidthLimitMb = user.plan === 'starter' ? 100 : (user.plan === 'pro' ? 10240 : 512000);
+  const bandwidthUsedMb = totalViews * 2.5; // Estimate 2.5MB per view
+  const bandwidthPercentage = Math.min((bandwidthUsedMb / bandwidthLimitMb) * 100, 100).toFixed(1);
+
   const handleCreate = (e) => {
     e.preventDefault();
     if (!newTourTitle) return;
@@ -172,7 +181,7 @@ export default function Dashboard({
             </div>
             <div>
               <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Vistas Totales</div>
-              <div className="stat-value">2,845</div>
+              <div className="stat-value">{totalViews.toLocaleString()}</div>
             </div>
           </div>
 
@@ -182,7 +191,10 @@ export default function Dashboard({
             </div>
             <div>
               <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Límite de Ancho de Banda</div>
-              <div className="stat-value">94.2%</div>
+              <div className="stat-value">{bandwidthPercentage}%</div>
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                {bandwidthUsedMb.toFixed(1)} MB / {bandwidthLimitMb >= 1024 ? (bandwidthLimitMb / 1024) + ' GB' : bandwidthLimitMb + ' MB'}
+              </div>
             </div>
           </div>
 
@@ -191,8 +203,8 @@ export default function Dashboard({
               <BarChart3 size={24} />
             </div>
             <div>
-              <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Clientes Satisfechos</div>
-              <div className="stat-value">99.8%</div>
+              <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Hotspots Creados</div>
+              <div className="stat-value">{totalHotspots}</div>
             </div>
           </div>
         </section>

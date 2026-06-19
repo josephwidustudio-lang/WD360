@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS public.tours (
   title TEXT NOT NULL,
   description TEXT,
   scenes JSONB NOT NULL DEFAULT '[]'::jsonb,
+  views INT DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
