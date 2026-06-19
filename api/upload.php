@@ -33,10 +33,10 @@ if ($fileError !== UPLOAD_ERR_OK) {
     exit();
 }
 
-// Limit size to 10MB (approx. typical 360 panorama size)
-if ($fileSize > 10 * 1024 * 1024) {
+// Limit size to 50MB (approx. typical 360 panorama size)
+if ($fileSize > 50 * 1024 * 1024) {
     http_response_code(400);
-    echo json_encode(["error" => "File size exceeds the 10MB limit."]);
+    echo json_encode(["error" => "File size exceeds the 50MB limit."]);
     exit();
 }
 
