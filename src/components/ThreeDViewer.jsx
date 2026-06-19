@@ -55,14 +55,26 @@ export default function ThreeDViewer({
     const geometry = new THREE.SphereGeometry(500, 60, 40);
     geometry.scale(-1, 1, 1); // Invert sphere geometry to look inside
     
-    // 4. Material and texture loading (load initial texture)
-    const textureLoader = new THREE.TextureLoader();
-    const texture = textureLoader.load(sceneImage);
-    texture.colorSpace = THREE.SRGBColorSpace;
-    const material = new THREE.MeshBasicMaterial({ map: texture });
+    // 4. Material and texture loading (load initial texture asynchronously)
+    const material = new THREE.MeshBasicMaterial({ color: 0x111111 }); // Dark placeholder color
     const sphere = new THREE.Mesh(geometry, material);
     scene.add(sphere);
     setSphereMesh(sphere);
+    
+    const textureLoader = new THREE.TextureLoader();
+    textureLoader.load(
+      sceneImage,
+      (loadedTexture) => {
+        loadedTexture.colorSpace = THREE.SRGBColorSpace;
+        material.map = loadedTexture;
+        material.color.setHex(0xffffff); // Restore full color once loaded
+        material.needsUpdate = true;
+      },
+      undefined,
+      (err) => {
+        console.error("Error al cargar la textura inicial en ThreeDViewer:", err);
+      }
+    );
     
     // 5. Renderer
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
