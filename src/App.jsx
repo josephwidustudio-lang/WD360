@@ -8,6 +8,12 @@ import { Compass, Sparkles, LogOut, ArrowLeft, Layers, User, Play } from 'lucide
 import { isSupabaseConfigured, db } from './utils/supabaseClient';
 import './App.css';
 
+const PLAN_LIMITS = {
+  starter: { maxRenders: 1, maxTours: 1 },
+  pro: { maxRenders: 25, maxTours: 15 },
+  enterprise: { maxRenders: 999, maxTours: 999 }
+};
+
 export default function App() {
   const [screen, setScreen] = useState('landing'); // 'landing', 'login', 'register', 'dashboard', 'editor', 'preview'
   const [user, setUser] = useState(null);
@@ -465,6 +471,8 @@ export default function App() {
           onBack={() => setScreen('dashboard')}
           onSaveTour={handleSaveTourFromEditor}
           onUploadImage={isSupabaseConfigured ? db.uploadSceneImage : null}
+          maxRendersLimit={PLAN_LIMITS[user?.plan || 'starter']?.maxRenders || 1}
+          currentRendersCount={tours.reduce((acc, t) => acc + (t.scenes ? t.scenes.length : 0), 0)}
         />
       )}
 

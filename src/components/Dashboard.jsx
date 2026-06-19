@@ -43,7 +43,7 @@ export default function Dashboard({
 
   // Define limits based on plan
   const planLimits = {
-    starter: { name: 'Starter', maxRenders: 5, maxTours: 2 },
+    starter: { name: 'Starter', maxRenders: 1, maxTours: 1 },
     pro: { name: 'Professional', maxRenders: 25, maxTours: 15 },
     enterprise: { name: 'Agency / Enterprise', maxRenders: 999, maxTours: 999 }
   };

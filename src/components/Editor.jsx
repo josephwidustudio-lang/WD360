@@ -7,7 +7,9 @@ export default function Editor({
   tour, 
   onBack, 
   onSaveTour,
-  onUploadImage
+  onUploadImage,
+  maxRendersLimit = 999,
+  currentRendersCount = 0
 }) {
   const [activeSceneId, setActiveSceneId] = useState(tour.scenes[0]?.id || '');
   const [hotspotPosition, setHotspotPosition] = useState(null);
@@ -20,6 +22,11 @@ export default function Editor({
 
   // Quick preset helper to add a room
   const handleAddNewScene = (type) => {
+    if (currentRendersCount >= maxRendersLimit) {
+      alert(`Has alcanzado el límite de tu plan (${maxRendersLimit} ambientes/renders en total). Por favor mejora tu plan en el Dashboard.`);
+      return;
+    }
+    
     const names = {
       living: 'Sala Principal',
       kitchen: 'Cocina Americana',
@@ -47,6 +54,11 @@ export default function Editor({
   const handleUploadScene = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
+
+    if (currentRendersCount >= maxRendersLimit) {
+      alert(`Has alcanzado el límite de tu plan (${maxRendersLimit} ambientes/renders en total). Por favor mejora tu plan en el Dashboard.`);
+      return;
+    }
 
     setIsUploading(true);
     try {
