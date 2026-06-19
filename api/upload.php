@@ -61,10 +61,6 @@ $safeFileName = time() . '_' . preg_replace('/[^a-zA-Z0-9.]/', '_', $fileName);
 $destPath = $uploadDir . $safeFileName;
 
 if (move_uploaded_file($fileTmpName, $destPath)) {
-    // Generate public URL dynamically
-    $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? "https://" : "http://";
-    $host = $_SERVER['HTTP_HOST'];
-    
     // Get the base directory path (relative to root domain)
     $scriptDir = dirname($_SERVER['SCRIPT_NAME']);
     // Normalize path slashes for URL
@@ -73,7 +69,7 @@ if (move_uploaded_file($fileTmpName, $destPath)) {
         $scriptDir .= '/';
     }
 
-    $publicUrl = $protocol . $host . $scriptDir . 'uploads/' . $safeFileName;
+    $publicUrl = $scriptDir . 'uploads/' . $safeFileName;
 
     echo json_encode([
         "success" => true,
