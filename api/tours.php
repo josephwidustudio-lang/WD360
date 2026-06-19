@@ -67,6 +67,7 @@ switch ($method) {
                         "scenes" => json_decode($row['scenes'], true),
                         "views" => (int)$row['views'],
                         "created_at" => $row['created_at']
+                    ];
                 }
                 echo json_encode($formattedTours);
             } catch (Exception $e) {
